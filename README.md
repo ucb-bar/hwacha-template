@@ -1,8 +1,20 @@
-# RISC-V Project Template
+# UCB-BAR Hwacha Project Template
 
-This is a starter template for your custom RISC-V project. It will allow you
-to leverage the Chisel HDL and RocketChip SoC generator to produce a
-RISC-V SoC with MMIO-mapped peripherals, DMA, and custom accelerators.
+This is a template for building a rocket-chip with Hwacha.
+
+## Submodules and Subdirectories
+
+The submodules and subdirectories for the project template are organized as
+follows.
+
+ * rocket-chip - contains code for the RocketChip generator, Chisel HCL, and FIRRTL
+ * hwacha - contains code for the Hwacha accelerator
+ * riscv-tools - contains the code for the compiler toolchain that targets Hwacha
+ * testchipip - contains the serial adapter, block device, and associated verilog and C++ code
+ * verisim - directory in which Verilator simulations are compiled and run
+ * vsim - directory in which Synopsys VCS simulations are compiled and run
+ * bootrom - sources for the first-stage bootloader included in the Boot ROM
+ * src/main/scala - scala source files for your project extension go here
 
 ## Getting started
 
@@ -10,9 +22,9 @@ RISC-V SoC with MMIO-mapped peripherals, DMA, and custom accelerators.
 
 After cloning this repo, you will need to initialize all of the submodules
 
-    git clone https://github.com/ucb-bar/project-template.git
-    cd project-template
-    git submodule update --init --recursive
+    git clone https://github.com/ucb-bar/hwacha-template.git
+    cd hwacha-template
+    ./scripts/init-submodules
 
 ### Building the tools
 
@@ -38,25 +50,36 @@ An executable called simulator-example-DefaultExampleConfig will be produced.
 You can then use this executable to run any compatible RV64 code. For instance,
 to run one of the riscv-tools assembly tests.
 
-    ./simulator-example-DefaultExampleConfig $RISCV/riscv64-unknown-elf/share/riscv-tests/isa/rv64ui-p-simple
+    make output/rv64ui-p-simple.out
 
 If you later create your own project, you can use environment variables to
-build an alternate configuration.
+build an alternate configuration. The different variables are
+
+* PROJECT: The package that contains your test harness class
+* CFG_PROJECT: The package that contains your config class
+* GENERATOR_PROJECT: The package that contains your Generator class
+* MODEL: The class name of your test harness
+* CONFIG: The class name of your config
+
+You can manually override them like this
 
     make PROJECT=yourproject CONFIG=YourConfig
     ./simulator-yourproject-YourConfig ...
 
-## Submodules and Subdirectories
+### Running random tests with torture ###
 
-The submodules and subdirectories for the project template are organized as
-follows.
+RISC-V Torture is included as a submodule and includes the ability to test
+Hwacha.
+You can run a single test like so:
 
- * rocket-chip - contains code for the RocketChip generator and Chisel HDL
- * testchipip - contains the serial adapter, block device, and associated verilog and C++ code
- * verisim - directory in which Verilator simulations are compiled and run
- * vsim - directory in which Synopsys VCS simulations are compiled and run
- * bootrom - sources for the first-stage bootloader included in the Boot ROM
- * src/main/scala - scala source files for your project go here
+    make rgentest R_SIM=../vsim/simv-freechips.rocketchip.chip-ISCA2016Config
+
+You can run a nightly test, which runs for a set amount of time or a set
+number of failures like this:
+
+    make rnight R_SIM=../vsim/simv-freechips.rocketchip.chip-ISCA2016Config OPTIONS="-C config/mem_vec.config -t 5 -m 30"
+
+## THE REMAINDER OF THIS FILE IS COPIED FROM PROJECT-TEMPLATE ##
 
 ## Using the block device
 

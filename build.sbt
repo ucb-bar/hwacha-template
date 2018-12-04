@@ -15,6 +15,8 @@ lazy val commonSettings = Seq(
 
 lazy val rocketchip = RootProject(file("rocket-chip"))
 
-lazy val testchipip = project.settings(commonSettings).dependsOn(rocketchip)
+lazy val testchipip = project.settings(commonSettings:_*).dependsOn(rocketchip)
 
-lazy val example = (project in file(".")).settings(commonSettings).dependsOn(testchipip)
+lazy val hwacha = project.settings(commonSettings:_*).dependsOn(rocketchip)
+
+lazy val example = (project in file(".")).settings(commonSettings:_*).dependsOn(testchipip, hwacha)

@@ -7,6 +7,7 @@ import freechips.rocketchip.diplomacy.{LazyModule, ValName}
 import freechips.rocketchip.devices.tilelink.BootROMParams
 import freechips.rocketchip.tile.XLen
 import testchipip._
+import hwacha._
 
 class WithBootROM extends Config((site, here, up) => {
   case BootROMParams => BootROMParams(
@@ -22,11 +23,6 @@ class WithExampleTop extends Config((site, here, up) => {
   case BuildTop => (clock: Clock, reset: Bool, p: Parameters) => {
     Module(LazyModule(new ExampleTop()(p)).module)
   }
-})
-
-class WithPWM extends Config((site, here, up) => {
-  case BuildTop => (clock: Clock, reset: Bool, p: Parameters) =>
-    Module(LazyModule(new ExampleTopWithPWM()(p)).module)
 })
 
 class WithBlockDeviceModel extends Config((site, here, up) => {
@@ -45,6 +41,14 @@ class WithSimBlockDevice extends Config((site, here, up) => {
   }
 })
 
+class ExampleHwachaConfig extends Config(
+  new WithExampleTop ++
+  new ISCA2016Config)
+
+class ExampleHwacha4LaneConfig extends Config(
+  new WithExampleTop ++
+  new ISCA2016L4Config)
+
 class BaseExampleConfig extends Config(
   new WithBootROM ++
   new freechips.rocketchip.system.DefaultConfig)
@@ -54,8 +58,6 @@ class DefaultExampleConfig extends Config(
 
 class RoccExampleConfig extends Config(
   new WithRoccExample ++ new DefaultExampleConfig)
-
-class PWMConfig extends Config(new WithPWM ++ new BaseExampleConfig)
 
 class SimBlockDeviceConfig extends Config(
   new WithBlockDevice ++ new WithSimBlockDevice ++ new BaseExampleConfig)

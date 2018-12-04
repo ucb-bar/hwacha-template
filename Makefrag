@@ -1,6 +1,6 @@
 ROCKETCHIP_DIR=$(base_dir)/rocket-chip
 
-SBT ?= java -Xmx2G -Xss8M -XX:MaxPermSize=256M -jar $(ROCKETCHIP_DIR)/sbt-launch.jar ++2.12.4
+SBT ?= java -Xmx$(JVM_HEAP_SIZE) -Xss8M -XX:MaxPermSize=256M -jar $(ROCKETCHIP_DIR)/sbt-launch.jar ++2.12.4
 
 lookup_scala_srcs = $(shell find $(1)/ -iname "*.scala" 2> /dev/null)
 
@@ -9,7 +9,7 @@ SCALA_SOURCES=$(foreach pkg,$(PACKAGES),$(call lookup_scala_srcs,$(base_dir)/$(p
 
 ROCKET_CLASSES ?= "$(ROCKETCHIP_DIR)/target/scala-2.12/classes:$(ROCKETCHIP_DIR)/chisel3/target/scala-2.12/*"
 FIRRTL_JAR ?= $(ROCKETCHIP_DIR)/lib/firrtl.jar
-FIRRTL ?= java -Xmx2G -Xss8M -XX:MaxPermSize=256M -cp $(ROCKET_CLASSES):$(FIRRTL_JAR) firrtl.Driver
+FIRRTL ?= java -Xmx$(JVM_HEAP_SIZE) -Xss8M -XX:MaxPermSize=256M -cp $(ROCKET_CLASSES):$(FIRRTL_JAR) firrtl.Driver
 
 $(FIRRTL_JAR): $(call lookup_scala_srcs, $(ROCKETCHIP_DIR)/firrtl/src/main/scala)
 	$(MAKE) -C $(ROCKETCHIP_DIR)/firrtl SBT="$(SBT)" root_dir=$(ROCKETCHIP_DIR)/firrtl build-scala
@@ -24,47 +24,41 @@ include $(testchip_dir)/Makefrag
 
 CHISEL_ARGS ?=
 
-FIRRTL_FILE=$(build_dir)/$(PROJECT).$(MODEL).$(CONFIG).fir
-ANNO_FILE=$(build_dir)/$(PROJECT).$(MODEL).$(CONFIG).anno.json
-VERILOG_FILE=$(build_dir)/$(PROJECT).$(MODEL).$(CONFIG).v
+FIRRTL_FILE=$(build_dir)/$(long_name).fir
+ANNO_FILE=$(build_dir)/$(long_name).anno.json
+VERILOG_FILE=$(build_dir)/$(long_name).v
 
 $(FIRRTL_FILE) $(ANNO_FILE): $(SCALA_SOURCES) $(bootrom_img) $(FIRRTL_JAR)
 	mkdir -p $(build_dir)
-	cd $(base_dir) && $(SBT) "runMain $(PROJECT).Generator $(CHISEL_ARGS) $(build_dir) $(PROJECT) $(MODEL) $(CFG_PROJECT) $(CONFIG)"
+	cd $(base_dir) && $(SBT) "runMain $(GENERATOR_PROJECT).Generator $(CHISEL_ARGS) $(build_dir) $(PROJECT) $(MODEL) $(CFG_PROJECT) $(CONFIG)"
 
 $(VERILOG_FILE): $(FIRRTL_FILE) $(ANNO_FILE) $(FIRRTL_JAR)
 	$(FIRRTL) -i $(FIRRTL_FILE) -o $(VERILOG_FILE) -X verilog -faf $(ANNO_FILE)
 
-regression-tests = \
-	rv64ud-v-fcvt \
-        rv64ud-p-fdiv \
-        rv64ud-v-fadd \
-        rv64uf-v-fadd \
-        rv64um-v-mul \
-        rv64mi-p-breakpoint \
-        rv64uc-v-rvc \
-        rv64ud-v-structural \
-        rv64si-p-wfi \
-        rv64um-v-divw \
-        rv64ua-v-lrsc \
-        rv64ui-v-fence_i \
-        rv64ud-v-fcvt_w \
-        rv64uf-v-fmin \
-        rv64ui-v-sb \
-        rv64ua-v-amomax_d \
-        rv64ud-v-move \
-        rv64ud-v-fclass \
-        rv64ua-v-amoand_d \
-        rv64ua-v-amoxor_d \
-        rv64si-p-sbreak \
-        rv64ud-v-fmadd \
-        rv64uf-v-ldst \
-        rv64um-v-mulh \
-        rv64si-p-dirty
-
 output_dir=$(sim_dir)/output
 
-$(output_dir)/%: $(RISCV)/riscv64-unknown-elf/share/riscv-tests/isa/%
-	mkdir -p $(output_dir)
-	ln -sf $< $@
+# Assembly/Benchmark Testing
+.PRECIOUS: $(output_dir)/%.vpd
 
+$(output_dir)/%.run: $(output_dir)/% $(sim)
+	cd $(sim_dir) && $(exec_sim) +max-cycles=$(timeout_cycles) +permissive-off $< 2> /dev/null 2> $@ && [ $$PIPESTATUS -eq 0 ]
+
+$(output_dir)/%.out: $(output_dir)/% $(sim)
+	cd $(sim_dir) && $(exec_sim) +verbose +max-cycles=$(timeout_cycles) +permissive-off $< $(disasm) $@ && [ $$PIPESTATUS -eq 0 ]
+
+$(output_dir)/%.vcd: $(output_dir)/% $(sim_debug)
+	cd $(sim_dir) && $(exec_sim_debug) +verbose -v$@ +max-cycles=$(timeout_cycles) +permissive-off $< $(disasm) $(patsubst %.vcd,%.out,$@) && [ $$PIPESTATUS -eq 0 ]
+
+$(output_dir)/%.vpd: $(output_dir)/% $(sim_debug)
+	cd $(sim_dir) && $(exec_sim_debug) +verbose +vcdplusfile=$@ +max-cycles=$(timeout_cycles) +permissive-off $< $(disasm) $(patsubst %.vpd,%.out,$@) && [ $$PIPESTATUS -eq 0 ]
+
+$(output_dir)/%.saif: $(output_dir)/% $(sim_debug)
+	cd $(sim_dir) && rm -f $(output_dir)/pipe-$*.vcd && vcd2saif -input $(output_dir)/pipe-$*.vcd -pipe "$(exec_sim_debug) +verbose +vcdfile=$(output_dir)/pipe-$*.vcd +max-cycles=$(bmark_timeout_cycles) +permissive-off $<" -output $@ > $(patsubst %.saif,%.out,$@) 2>&1
+
+run: run-asm-tests run-bmark-tests
+run-debug: run-asm-tests-debug run-bmark-tests-debug
+run-fast: run-asm-tests-fast run-bmark-tests-fast
+
+.PHONY: run-asm-tests run-bmark-tests
+.PHONY: run-asm-tests-debug run-bmark-tests-debug
+.PHONY: run run-debug run-fast

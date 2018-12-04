@@ -4,3 +4,13 @@
 [submodule "testchipip"]
 	path = testchipip
 	url = https://github.com/ucb-bar/testchipip.git
+[submodule "hwacha"]
+	path = hwacha
+	url = https://github.com/ucb-bar/hwacha.git
+[submodule "esp-tools"]
+	path = riscv-tools
+	url = https://github.com/ucb-bar/esp-tools.git
+[submodule "torture"]
+	path = torture
+	url = https://github.com/ucb-bar/riscv-torture.git
+	branch = hwacha

@@ -1,0 +1,37 @@
+PROJECT ?= freechips.rocketchip.system
+MODEL ?= TestHarness
+CONFIG ?= ISCA2016Config
+CFG_PROJECT ?= hwacha
+GENERATOR_PROJECT ?= hwacha
+TB ?= TestDriver
+
+JVM_HEAP_SIZE ?= 16G
+
+long_name = $(PROJECT).$(CONFIG)
+
+rocketchip_vsrc_dir = $(ROCKETCHIP_DIR)/src/main/resources/vsrc
+rocketchip_csrc_dir = $(ROCKETCHIP_DIR)/src/main/resources/csrc
+
+sim_vsrcs = \
+	$(VERILOG_FILE) \
+	$(rocketchip_vsrc_dir)/$(TB).v \
+	$(rocketchip_vsrc_dir)/AsyncResetReg.v \
+	$(rocketchip_vsrc_dir)/plusarg_reader.v \
+	$(rocketchip_vsrc_dir)/SimDTM.v \
+	$(testchip_vsrcs)
+
+sim_csrcs = \
+	$(testchip_csrcs) \
+	$(rocketchip_csrc_dir)/SimDTM.cc
+
+# Assembly/Benchmark Testing
+disasm := 2>
+which_disasm := $(shell which spike-dasm 2> /dev/null)
+ifneq ($(which_disasm),)
+  disasm = 3>&1 1>&2 2>&3 | $(which_disasm) $(DISASM_EXTENSION) >
+endif
+
+timeout_cycles = 10000000
+bmark_timeout_cycles = 100000000
+
+junk += $(output_dir)

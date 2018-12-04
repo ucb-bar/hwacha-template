@@ -1,14 +1,11 @@
 base_dir=$(abspath ..)
 sim_dir=$(abspath .)
 
-PROJECT ?= example
-MODEL ?= TestHarness
-CONFIG ?= DefaultExampleConfig
-CFG_PROJECT ?= $(PROJECT)
-TB ?= TestDriver
-
+include $(base_dir)/Makefrag-variables
 sim = $(sim_dir)/simulator-$(PROJECT)-$(CONFIG)
 sim_debug = $(sim_dir)/simulator-$(PROJECT)-$(CONFIG)-debug
+tether_file = $(build_dir)/$(CONFIG).tether
+TETHER ?= dtm
 
 default: $(sim)
 
@@ -19,20 +16,12 @@ LDFLAGS := $(LDFLAGS) -L$(RISCV)/lib -Wl,-rpath,$(RISCV)/lib -L$(sim_dir) -lfesv
 
 include $(base_dir)/Makefrag
 include $(sim_dir)/Makefrag-verilator
+ifneq ($(filter run% %.run %.out %.vpd %.vcd,$(MAKECMDGOALS)),)
+-include $(build_dir)/$(long_name).d
+endif
 
-long_name = $(PROJECT).$(MODEL).$(CONFIG)
-
-rocketchip_vsrc_dir = $(ROCKETCHIP_DIR)/src/main/resources/vsrc
-
-sim_vsrcs = \
-	$(build_dir)/$(long_name).v \
-	$(rocketchip_vsrc_dir)/AsyncResetReg.v \
-	$(rocketchip_vsrc_dir)/plusarg_reader.v \
-	$(testchip_vsrcs)
-
-sim_csrcs = \
-	$(sim_dir)/csrc/verilator-harness.cc \
-	$(testchip_csrcs)
+sim_csrcs += \
+	$(sim_dir)/csrc/verilator-harness.cc
 
 model_dir = $(build_dir)/$(long_name)
 model_dir_debug = $(build_dir)/$(long_name).debug
@@ -46,9 +35,10 @@ model_mk_debug = $(model_dir_debug)/V$(MODEL).mk
 $(model_mk): $(sim_vsrcs) $(INSTALLED_VERILATOR)
 	rm -rf $(build_dir)/$(long_name)
 	mkdir -p $(build_dir)/$(long_name)
+	$(if $(wildcard $(tether_file)),$(eval TETHER := tsi))
 	$(VERILATOR) $(VERILATOR_FLAGS) -Mdir $(build_dir)/$(long_name) \
 	-o $(sim) $< $(sim_csrcs) -LDFLAGS "$(LDFLAGS)" \
-	-CFLAGS "-I$(build_dir) -include $(model_header)"
+	-CFLAGS "-I$(build_dir) -DTETHER_TYPE=$(TETHER)_t -DTETHER_NAME=$(TETHER) -include $(model_header)"
 	touch $@
 
 $(sim): $(model_mk) $(sim_csrcs)
@@ -57,30 +47,20 @@ $(sim): $(model_mk) $(sim_csrcs)
 
 $(model_mk_debug): $(sim_vsrcs) $(INSTALLED_VERILATOR)
 	mkdir -p $(build_dir)/$(long_name).debug
+	$(if $(wildcard $(tether_file)),$(eval TETHER := tsi))
 	$(VERILATOR) $(VERILATOR_FLAGS) -Mdir $(build_dir)/$(long_name).debug --trace \
 	-o $(sim_debug) $< $(sim_csrcs) -LDFLAGS "$(LDFLAGS)" \
-	-CFLAGS "-I$(build_dir) -include $(model_header_debug)"
+	-CFLAGS "-I$(build_dir) -DTETHER_TYPE=$(TETHER)_t -DTETHER_NAME=$(TETHER) -include $(model_header_debug)"
 	touch $@
 
 $(sim_debug): $(model_mk_debug) $(sim_csrcs)
 	$(MAKE) VM_PARALLEL_BUILDS=1 -C $(build_dir)/$(long_name).debug -f V$(MODEL).mk
 
-$(output_dir)/%.out: $(output_dir)/% $(sim)
-	$(sim) +verbose +max-cycles=1000000 $< 3>&1 1>&2 2>&3 | spike-dasm > $@
 
-$(output_dir)/%.run: $(output_dir)/% $(sim)
-	$(sim) +max-cycles=1000000 $< && touch $@
-
-$(output_dir)/%.vpd: $(output_dir)/% $(sim_debug)
-	rm -f $@.vcd && mkfifo $@.vcd
-	vcd2vpd $@.vcd $@ > /dev/null &
-	$(sim_debug) -v$@.vcd +max-cycles=1000000 $<
-
-run-regression-tests: $(addprefix $(output_dir)/,$(addsuffix .out,$(regression-tests)))
-
-run-regression-tests-fast: $(addprefix $(output_dir)/,$(addsuffix .run,$(regression-tests)))
-
-run-regression-tests-debug: $(addprefix $(output_dir)/,$(addsuffix .vpd,$(regression-tests)))
+exec_sim = $(sim)
+exec_sim_debug = $(sim_debug)
 
 clean:
-	rm -rf generated-src ./simulator-*
+	rm -rf $(build_dir) ./simulator-*
+
+.PHONY: clean default debug
