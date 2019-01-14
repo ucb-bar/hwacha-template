@@ -1,7 +1,7 @@
 PROJECT ?= freechips.rocketchip.system
 MODEL ?= TestHarness
-CONFIG ?= ISCA2016Config
-CFG_PROJECT ?= hwacha
+CONFIG ?= ExampleHwachaConfig
+CFG_PROJECT ?= example
 GENERATOR_PROJECT ?= hwacha
 TB ?= TestDriver
 

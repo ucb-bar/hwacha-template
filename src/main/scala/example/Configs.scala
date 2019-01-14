@@ -7,7 +7,6 @@ import freechips.rocketchip.diplomacy.{LazyModule, ValName}
 import freechips.rocketchip.devices.tilelink.BootROMParams
 import freechips.rocketchip.tile.XLen
 import testchipip._
-import hwacha._
 
 class WithBootROM extends Config((site, here, up) => {
   case BootROMParams => BootROMParams(
@@ -42,12 +41,12 @@ class WithSimBlockDevice extends Config((site, here, up) => {
 })
 
 class ExampleHwachaConfig extends Config(
-  new WithExampleTop ++
-  new ISCA2016Config)
+  new WithBootROM ++
+  new hwacha.ISCA2016Config)
 
 class ExampleHwacha4LaneConfig extends Config(
-  new WithExampleTop ++
-  new ISCA2016L4Config)
+  new WithBootROM ++
+  new hwacha.ISCA2016L4Config)
 
 class BaseExampleConfig extends Config(
   new WithBootROM ++
