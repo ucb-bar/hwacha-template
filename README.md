@@ -13,7 +13,6 @@ follows.
  * testchipip - contains the serial adapter, block device, and associated verilog and C++ code
  * verisim - directory in which Verilator simulations are compiled and run
  * vsim - directory in which Synopsys VCS simulations are compiled and run
- * bootrom - sources for the first-stage bootloader included in the Boot ROM
  * src/main/scala - scala source files for your project extension go here
 
 ## Getting started
@@ -31,26 +30,51 @@ After cloning this repo, you will need to initialize all of the submodules
 The tools repo contains the cross-compiler toolchain, frontend server, and
 proxy kernel, which you will need in order to compile code to RISC-V
 instructions and run them on your design. There are detailed instructions at
-https://github.com/riscv/riscv-tools. But to get a basic installation, just
+https://github.com/riscv/esp-tools. But to get a basic installation, just
 the following steps are necessary.
 
     # You may want to add the following two lines to your shell profile
     export RISCV=/path/to/install/dir
     export PATH=$RISCV/bin:$PATH
 
-    cd rocket-chip/riscv-tools
+    cd riscv-tools
     ./build.sh
 
 ### Compiling and running the Verilator simulation
 
 To compile the example design, run make in the "verisim" directory.
-This will elaborate the DefaultExampleConfig in the example project.
+This will elaborate the ExampleHwachaConfig in the example project.
 
-An executable called simulator-example-DefaultExampleConfig will be produced.
+An executable called simulator-example-ExampleHwachaConfig will be produced.
 You can then use this executable to run any compatible RV64 code. For instance,
 to run one of the riscv-tools assembly tests.
 
-    make output/rv64ui-p-simple.out
+    make ${PWD}/output/rv64ui-p-simple.out
+
+To run all assembly tests or simple benchmarks:
+
+    make run-asm-tests
+    make run-bmark-tests
+
+To generate waveforms:
+
+    make run-asm-tests-debug
+    make run-bmark-tests-debug
+
+To only run the Hwacha assembly tests:
+
+    make run-rv64uv-p-asm-tests
+    make run-rv64uv-vp-asm-tests
+
+---
+**NOTE**
+
+The Hwacha AMO tests are expected to fail.
+This is a current limitation of the example open-source configurations,
+which only instantiate an L2 broadcast hub that does not support AMOs
+(not a full TileLink2-compliant L2 cache).
+
+---
 
 If you later create your own project, you can use environment variables to
 build an alternate configuration. The different variables are
@@ -72,12 +96,12 @@ RISC-V Torture is included as a submodule and includes the ability to test
 Hwacha.
 You can run a single test like so:
 
-    make rgentest R_SIM=../vsim/simv-freechips.rocketchip.chip-ISCA2016Config
+    make rgentest R_SIM=../vsim/simv-freechips.rocketchip.system-ExampleHwachaConfig
 
 You can run a nightly test, which runs for a set amount of time or a set
 number of failures like this:
 
-    make rnight R_SIM=../vsim/simv-freechips.rocketchip.chip-ISCA2016Config OPTIONS="-C config/mem_vec.config -t 5 -m 30"
+    make rnight R_SIM=../vsim/simv-freechips.rocketchip.system-ExampleHwachaConfig OPTIONS="-C config/mem_vec.config -t 5 -m 30"
 
 ## THE REMAINDER OF THIS FILE IS COPIED FROM PROJECT-TEMPLATE ##
 
