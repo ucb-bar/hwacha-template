@@ -30,7 +30,7 @@ After cloning this repo, you will need to initialize all of the submodules
 The tools repo contains the cross-compiler toolchain, frontend server, and
 proxy kernel, which you will need in order to compile code to RISC-V
 instructions and run them on your design. There are detailed instructions at
-https://github.com/riscv/esp-tools. But to get a basic installation, just
+[esp-tools](https://github.com/ucb-bar/esp-tools). But to get a basic installation, just
 the following steps are necessary.
 
     # You may want to add the following two lines to your shell profile
