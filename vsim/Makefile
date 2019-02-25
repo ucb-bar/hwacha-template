@@ -6,14 +6,14 @@ include $(base_dir)/Makefrag-variables
 sim = $(sim_dir)/simv-$(PROJECT)-$(CONFIG)
 sim_debug = $(sim_dir)/simv-$(PROJECT)-$(CONFIG)-debug
 
-simv = $(sim_dir)/simv-$(PROJECT)-$(CONFIG)
-simv_debug = $(sim_dir)/simv-$(PROJECT)-$(CONFIG)-debug
+default: $(sim)
 
-default: $(simv)
-
-debug: $(simv_debug)
+debug: $(sim_debug)
 
 include $(base_dir)/Makefrag
+
+sim_vsrcs += \
+	$(rocketchip_vsrc_dir)/TestDriver.v
 
 ifneq ($(filter run% %.run %.out %.vpd %.vcd,$(MAKECMDGOALS)),)
 -include $(build_dir)/$(long_name).d
@@ -37,18 +37,16 @@ VCS_OPTS = -notice -line +lint=all,noVCDE,noONGS,noUI -error=PCWM-L -timescale=1
 	+define+RANDOMIZE_REG_INIT \
 	+define+RANDOMIZE_GARBAGE_ASSIGN \
 	+define+RANDOMIZE_INVALID_ASSIGN \
+	+define+RANDOMIZE_DELAY=2 \
 	+libext+.v \
-
-VCS_OPTS += +vpi
-VCS_OPTS += -CC "-DVCS_VPI"
 
 verilog: $(sim_vsrcs)
 
-$(simv): $(sim_vsrcs) $(sim_csrcs)
+$(sim): $(sim_vsrcs) $(sim_csrcs)
 	rm -rf csrc && $(VCS) $(VCS_OPTS) -o $@ \
 	-debug_pp
 
-$(simv_debug) : $(sim_vsrcs) $(sim_csrcs)
+$(sim_debug) : $(sim_vsrcs) $(sim_csrcs)
 	rm -rf csrc && $(VCS) $(VCS_OPTS) -o $@ \
 	+define+DEBUG -debug_pp
 

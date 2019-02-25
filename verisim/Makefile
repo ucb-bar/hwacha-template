@@ -37,7 +37,7 @@ $(model_mk): $(sim_vsrcs) $(INSTALLED_VERILATOR)
 	mkdir -p $(build_dir)/$(long_name)
 	$(if $(wildcard $(tether_file)),$(eval TETHER := tsi))
 	$(VERILATOR) $(VERILATOR_FLAGS) -Mdir $(build_dir)/$(long_name) \
-	-o $(sim) $< $(sim_csrcs) -LDFLAGS "$(LDFLAGS)" \
+	-o $(sim) $(sim_vsrcs) $(sim_csrcs) -LDFLAGS "$(LDFLAGS)" \
 	-CFLAGS "-I$(build_dir) -DTETHER_TYPE=$(TETHER)_t -DTETHER_NAME=$(TETHER) -include $(model_header)"
 	touch $@
 
@@ -49,7 +49,7 @@ $(model_mk_debug): $(sim_vsrcs) $(INSTALLED_VERILATOR)
 	mkdir -p $(build_dir)/$(long_name).debug
 	$(if $(wildcard $(tether_file)),$(eval TETHER := tsi))
 	$(VERILATOR) $(VERILATOR_FLAGS) -Mdir $(build_dir)/$(long_name).debug --trace \
-	-o $(sim_debug) $< $(sim_csrcs) -LDFLAGS "$(LDFLAGS)" \
+	-o $(sim_debug) $(sim_vsrcs) $(sim_csrcs) -LDFLAGS "$(LDFLAGS)" \
 	-CFLAGS "-I$(build_dir) -DTETHER_TYPE=$(TETHER)_t -DTETHER_NAME=$(TETHER) -include $(model_header_debug)"
 	touch $@
 

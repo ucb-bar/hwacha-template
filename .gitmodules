@@ -14,3 +14,6 @@
 	path = torture
 	url = https://github.com/ucb-bar/riscv-torture.git
 	branch = hwacha
+[submodule "barstools"]
+	path = barstools
+	url = https://github.com/ucb-bar/barstools.git
