@@ -1,4 +1,4 @@
-PROJECT ?= freechips.rocketchip.system
+PROJECT ?= example
 MODEL ?= TestHarness
 CONFIG ?= ExampleHwachaConfig
 CFG_PROJECT ?= example

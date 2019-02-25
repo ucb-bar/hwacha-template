@@ -42,10 +42,12 @@ class WithSimBlockDevice extends Config((site, here, up) => {
 
 class ExampleHwachaConfig extends Config(
   new WithBootROM ++
+  new WithExampleTop ++
   new hwacha.ISCA2016Config)
 
 class ExampleHwacha4LaneConfig extends Config(
   new WithBootROM ++
+  new WithExampleTop ++
   new hwacha.ISCA2016L4Config)
 
 class BaseExampleConfig extends Config(
