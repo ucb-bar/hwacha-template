@@ -20,8 +20,13 @@ ifneq ($(filter run% %.run %.out %.vpd %.vcd,$(MAKECMDGOALS)),)
 -include $(build_dir)/$(long_name).d
 endif
 
+ifeq ($(TETHER),dtm)
+sim_csrcs += \
+	$(rocketchip_csrc_dir)/emulator.cc
+else
 sim_csrcs += \
 	$(sim_dir)/csrc/verilator-harness.cc
+endif
 
 model_dir = $(build_dir)/$(long_name)
 model_dir_debug = $(build_dir)/$(long_name).debug

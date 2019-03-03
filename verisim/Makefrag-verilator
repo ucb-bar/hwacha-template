@@ -28,8 +28,9 @@ verilator/verilator-$(VERILATOR_VERSION).tar.gz:
 VERILATOR := $(INSTALLED_VERILATOR) --cc --exe
 VERILATOR_FLAGS := --top-module $(MODEL) \
 	+define+PRINTF_COND=\$$c\(\"verbose\",\"\&\&\"\,\"done_reset\"\) \
+	+define+RANDOMIZE_GARBAGE_ASSIGN \
 	+define+STOP_COND=\$$c\(\"done_reset\"\) --assert \
 	--output-split 20000 \
 	--output-split-cfuncs 20000 \
 	-Wno-STMTDLY --x-assign unique \
-	-O3 -CFLAGS "$(CXXFLAGS) -DVERILATOR -DTEST_HARNESS=V$(MODEL) -include $(rocketchip_csrc_dir)/verilator.h"
+	-O3 -CFLAGS "$(CXXFLAGS) -DVERILATOR -DTEST_HARNESS=V$(MODEL) -include $(rocketchip_csrc_dir)/verilator.h -include $(build_dir)/$(long_name).plusArgs"
