@@ -2,10 +2,15 @@
 set -e
 
 # top-level
-git submodule update --init rocket-chip riscv-tools testchipip hwacha torture
+git submodule update --init rocket-chip riscv-tools testchipip hwacha torture barstools
 # rocket-chip (skip tools)
 git -C rocket-chip submodule update --init --recursive hardfloat chisel3 firrtl
-# esp-tools (skip llvm)
-git -C riscv-tools submodule update --init --recursive riscv-isa-sim riscv-fesvr riscv-pk riscv-opcodes riscv-tests riscv-gnu-toolchain riscv-openocd
+# esp-tools (skip llvm, openocd and only init gnu-toolchain)
+git -C riscv-tools submodule update --init --recursive riscv-isa-sim riscv-fesvr riscv-pk riscv-opcodes riscv-tests
+git -C riscv-tools submodule update --init riscv-gnu-toolchain
+# esp-gnu-toolchain (skip dejagnu, glibc, qemu)
+git -C riscv-tools/riscv-gnu-toolchain submodule update --init --recursive riscv-binutils-gdb riscv-gcc riscv-newlib
+# barstools submodules
+git -C barstools submodule update --init --recursive
 # torture submodules
 git -C torture submodule update --init --recursive
