@@ -22,6 +22,7 @@ VERILOG_FILE ?=$(build_dir)/$(long_name).top.v
 HARNESS_FILE ?=$(build_dir)/$(long_name).harness.v
 SMEMS_FILE   ?=$(build_dir)/$(long_name).mems.v
 SMEMS_CONF   ?=$(build_dir)/$(long_name).mems.conf
+sim_dotf ?= $(build_dir)/sim_files.f
 
 rocketchip_vsrc_dir = $(ROCKETCHIP_DIR)/src/main/resources/vsrc
 rocketchip_csrc_dir = $(ROCKETCHIP_DIR)/src/main/resources/csrc
@@ -29,21 +30,13 @@ rocketchip_csrc_dir = $(ROCKETCHIP_DIR)/src/main/resources/csrc
 sim_vsrcs = \
 	$(VERILOG_FILE) \
 	$(HARNESS_FILE) \
-	$(SMEMS_FILE) \
-	$(rocketchip_vsrc_dir)/AsyncResetReg.v \
-	$(rocketchip_vsrc_dir)/plusarg_reader.v \
-	$(rocketchip_vsrc_dir)/SimDTM.v \
-	$(rocketchip_vsrc_dir)/SimJTAG.v \
-	$(rocketchip_vsrc_dir)/ClockDivider2.v \
-	$(rocketchip_vsrc_dir)/ClockDivider3.v \
-	$(rocketchip_vsrc_dir)/EICG_wrapper.v \
-	$(testchip_vsrcs)
+	$(SMEMS_FILE)
 
-sim_csrcs = \
-	$(rocketchip_csrc_dir)/SimDTM.cc \
-	$(rocketchip_csrc_dir)/SimJTAG.cc \
-	$(rocketchip_csrc_dir)/remote_bitbang.cc \
-	$(testchip_csrcs)
+sim_top_blackboxes = \
+  $(build_dir)/firrtl_black_box_resource_files.top.f
+
+sim_harness_blackboxes = \
+  $(build_dir)/firrtl_black_box_resource_files.harness.f
 
 # Assembly/Benchmark Testing
 disasm := 2>

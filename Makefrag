@@ -1,4 +1,5 @@
 ROCKETCHIP_DIR=$(base_dir)/rocket-chip
+TESTCHIP_DIR = $(base_dir)/testchipip
 
 SBT ?= java -Xmx$(JVM_HEAP_SIZE) -Xss8M -XX:MaxPermSize=256M -jar $(ROCKETCHIP_DIR)/sbt-launch.jar ++$(SCALA_VERSION)
 
@@ -8,8 +9,8 @@ PACKAGES=rocket-chip testchipip hwacha
 SCALA_SOURCES=$(foreach pkg,$(PACKAGES),$(call lookup_scala_srcs,$(base_dir)/$(pkg)/src/main/scala)) $(call lookup_scala_srcs,$(base_dir)/src/main/scala)
 
 ROCKET_CLASSES ?= "$(ROCKETCHIP_DIR)/target/scala-$(SCALA_VERSION_MAJOR)/classes:$(ROCKETCHIP_DIR)/chisel3/target/scala-$(SCALA_VERSION_MAJOR)/*"
+TESTCHIPIP_CLASSES ?= "$(TESTCHIP_DIR)/target/scala-$(SCALA_VERSION_MAJOR)/classes"
 FIRRTL_JAR ?= $(ROCKETCHIP_DIR)/lib/firrtl.jar
-FIRRTL ?= java -Xmx$(JVM_HEAP_SIZE) -Xss8M -XX:MaxPermSize=256M -cp $(ROCKET_CLASSES):$(FIRRTL_JAR) firrtl.Driver
 
 $(FIRRTL_JAR): $(call lookup_scala_srcs, $(ROCKETCHIP_DIR)/firrtl/src/main/scala)
 	$(MAKE) -C $(ROCKETCHIP_DIR)/firrtl SBT="$(SBT)" root_dir=$(ROCKETCHIP_DIR)/firrtl build-scala
@@ -18,9 +19,6 @@ $(FIRRTL_JAR): $(call lookup_scala_srcs, $(ROCKETCHIP_DIR)/firrtl/src/main/scala
 	touch $@
 
 build_dir=$(sim_dir)/generated-src
-testchip_dir = $(base_dir)/testchipip
-
-include $(testchip_dir)/Makefrag
 
 CHISEL_ARGS ?=
 
@@ -28,30 +26,44 @@ REPL_SEQ_MEM = --repl-seq-mem -c:$(MODEL):-o:$(SMEMS_CONF)
 
 # This should match whatever the commonSettings version is in build.sbt
 BARSTOOLS_VER=1.0
-TAPEOUT_JAR=$(base_dir)/barstools/tapeout/target/scala-$(SCALA_VERSION_MAJOR)/tapeout_$(SCALA_VERSION_MAJOR)-$(BARSTOOLS_VER).jar
+TAPEOUT_JAR=$(base_dir)/barstools/tapeout/target/scala-$(SCALA_VERSION_MAJOR)/tapeout-assembly-$(BARSTOOLS_VER).jar
 MACROCOMPILER_JAR=$(base_dir)/barstools/macros/target/scala-$(SCALA_VERSION_MAJOR)/barstools-macros-assembly-$(BARSTOOLS_VER).jar
 
-TAPEOUT ?= java -Xmx8G -Xss8M -cp $(ROCKET_CLASSES):$(FIRRTL_JAR):$(TAPEOUT_JAR)
-MACROCOMPILER ?= java -Xmx8G -Xss8M -cp $(ROCKET_CLASSES):$(FIRRTL_JAR):$(MACROCOMPILER_JAR)
+TAPEOUT ?= java -Xmx8G -Xss8M -cp $(ROCKET_CLASSES):$(TESTCHIPIP_CLASSES):$(TAPEOUT_JAR)
+MACROCOMPILER ?= java -Xmx8G -Xss8M -cp $(ROCKET_CLASSES):$(TESTCHIPIP_CLASSES):$(MACROCOMPILER_JAR)
 
-$(TAPEOUT_JAR): $(call lookup_scala_srcs, $(base_dir)/barstools/tapeout/src/main/scala) $(FIRRTL_JAR)
-	cd $(base_dir) && $(SBT) "tapeout/package"
+$(TAPEOUT_JAR): $(call lookup_scala_srcs, $(base_dir)/barstools/tapeout/src/main/scala)
+	cd $(base_dir) && $(SBT) "tapeout/assembly"
 
-$(MACROCOMPILER_JAR): $(call lookup_scala_srcs, $(base_dir)/barstools/macros/src/main/scala) $(call lookup_scala_srcs, $(base_dir)/barstools/mdf/scalalib/src/main/scala) $(FIRRTL_JAR)
+$(MACROCOMPILER_JAR): $(call lookup_scala_srcs, $(base_dir)/barstools/macros/src/main/scala) $(call lookup_scala_srcs, $(base_dir)/barstools/mdf/scalalib/src/main/scala)
 	cd $(base_dir) && $(SBT) "barstools-macros/assembly"
 
 .PHONY: jars
 jars: $(MACROCOMPILER_JAR) $(TAPEOUT_JAR)
 
-$(FIRRTL_FILE) $(ANNO_FILE): $(SCALA_SOURCES) $(bootrom_img) $(FIRRTL_JAR)
+$(sim_dotf): $(SCALA_SOURCES) $(FIRRTL_JAR)
+	cd $(base_dir) && $(SBT) "runMain example.GenerateSimFiles -td $(build_dir) -sim $(sim_name)"
+
+.PHONY: firrtl
+firrtl: $(FIRRTL_FILE)
+
+$(FIRRTL_FILE) $(ANNO_FILE): $(SCALA_SOURCES) $(sim_dotf)
 	mkdir -p $(build_dir)
 	cd $(base_dir) && $(SBT) "runMain $(GENERATOR_PROJECT).Generator $(CHISEL_ARGS) $(build_dir) $(PROJECT) $(MODEL) $(CFG_PROJECT) $(CONFIG)"
 
-$(VERILOG_FILE) $(SMEMS_CONF): $(FIRRTL_FILE) $(ANNO_FILE) $(TAPEOUT_JAR)
-	$(TAPEOUT) barstools.tapeout.transforms.GenerateTop -o $(VERILOG_FILE) -i $(FIRRTL_FILE) --syn-top $(TOP) --harness-top $(MODEL) -faf $(ANNO_FILE) $(REPL_SEQ_MEM)
+.PHONY: top-v
+top-v: $(VERILOG_FILE)
 
-$(HARNESS_FILE): $(FIRRTL_FILE) $(ANNO_FILE) $(TAPEOUT_JAR)
-	$(TAPEOUT) barstools.tapeout.transforms.GenerateHarness -o $(HARNESS_FILE) -i $(FIRRTL_FILE) --syn-top $(TOP) --harness-top $(MODEL) -faf $(ANNO_FILE)
+$(VERILOG_FILE) $(SMEMS_CONF): $(FIRRTL_FILE) $(ANNO_FILE) $(TAPEOUT_JAR)
+	$(TAPEOUT) barstools.tapeout.transforms.GenerateTop -o $(VERILOG_FILE) -i $(FIRRTL_FILE) --syn-top $(TOP) --harness-top $(MODEL) -faf $(ANNO_FILE) $(REPL_SEQ_MEM) -td $(build_dir)
+	cp $(build_dir)/firrtl_black_box_resource_files.f $(sim_top_blackboxes)
+
+.PHONY: harness-v
+harness-v: $(HARNESS_FILE)
+
+$(HARNESS_FILE): $(FIRRTL_FILE) $(ANNO_FILE) $(TAPEOUT_JAR) $(sim_top_blackboxes)
+	$(TAPEOUT) barstools.tapeout.transforms.GenerateHarness -o $(HARNESS_FILE) -i $(FIRRTL_FILE) --syn-top $(TOP) --harness-top $(MODEL) -faf $(ANNO_FILE) -td $(build_dir)
+	grep -v "SimSerial.cc\|SimDTM.cc\|SimJTAG.cc" $(build_dir)/firrtl_black_box_resource_files.f > $(sim_harness_blackboxes)
 
 # This file is for simulation only. VLSI flows should replace this file with one containing hard SRAMs
 $(SMEMS_FILE): $(SMEMS_CONF) $(MACROCOMPILER_JAR)
@@ -86,3 +98,7 @@ run-fast: run-asm-tests-fast run-bmark-tests-fast
 .PHONY: run-asm-tests run-bmark-tests
 .PHONY: run-asm-tests-debug run-bmark-tests-debug
 .PHONY: run run-debug run-fast
+.PHONY: clean-scala
+clean-scala:
+	rm -rf $(MACROCOMPILER_JAR) $(TAPEOUT_JAR)
+

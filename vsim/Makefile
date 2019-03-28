@@ -3,6 +3,8 @@ sim_dir=$(abspath .)
 
 include $(base_dir)/Makefrag-variables
 
+sim_name = vcs
+
 sim = $(sim_dir)/simv-$(PROJECT)-$(CONFIG)
 sim_debug = $(sim_dir)/simv-$(PROJECT)-$(CONFIG)-debug
 
@@ -11,10 +13,6 @@ default: $(sim)
 debug: $(sim_debug)
 
 include $(base_dir)/Makefrag
-
-sim_vsrcs += \
-	$(rocketchip_vsrc_dir)/TestDriver.v
-
 ifneq ($(filter run% %.run %.out %.vpd %.vcd,$(MAKECMDGOALS)),)
 -include $(build_dir)/$(long_name).d
 endif
@@ -24,13 +22,14 @@ VCS = vcs -full64
 VCS_OPTS = -notice -line +lint=all,noVCDE,noONGS,noUI -error=PCWM-L -timescale=1ns/10ps -quiet \
 	+rad +v2k +vcs+lic+wait \
 	+vc+list -CC "-I$(VCS_HOME)/include" \
-	-CC "-I$(RISCV)/include -I$(base_dir)/testchipip/csrc" \
+	-CC "-I$(RISCV)/include" \
 	-CC "-std=c++11" \
 	-CC "-Wl,-rpath,$(RISCV)/lib" \
+	-f $(sim_top_blackboxes) -f $(sim_harness_blackboxes) -f $(sim_dotf) \
 	$(RISCV)/lib/libfesvr.so \
 	-sverilog \
 	+incdir+$(build_dir) \
-	+define+CLOCK_PERIOD=1.0 $(sim_vsrcs) $(sim_csrcs) \
+	+define+CLOCK_PERIOD=1.0 $(sim_vsrcs) \
 	+define+PRINTF_COND=$(TB).printf_cond \
 	+define+STOP_COND=!$(TB).reset \
 	+define+RANDOMIZE_MEM_INIT \
@@ -42,11 +41,11 @@ VCS_OPTS = -notice -line +lint=all,noVCDE,noONGS,noUI -error=PCWM-L -timescale=1
 
 verilog: $(sim_vsrcs)
 
-$(sim): $(sim_vsrcs) $(sim_csrcs)
+$(sim): $(sim_vsrcs) $(sim_dotf)
 	rm -rf csrc && $(VCS) $(VCS_OPTS) -o $@ \
 	-debug_pp
 
-$(sim_debug) : $(sim_vsrcs) $(sim_csrcs)
+$(sim_debug) : $(sim_vsrcs) $(sim_dotf)
 	rm -rf csrc && $(VCS) $(VCS_OPTS) -o $@ \
 	+define+DEBUG -debug_pp
 
