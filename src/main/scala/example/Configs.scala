@@ -2,7 +2,7 @@ package example
 
 import chisel3._
 import freechips.rocketchip.config.{Parameters, Config}
-import freechips.rocketchip.subsystem.{WithRoccExample, WithNMemoryChannels, WithNBigCores, WithRV32}
+import freechips.rocketchip.subsystem.{WithRoccExample, WithNMemoryChannels, WithNBigCores, WithRV32, WithNBanks}
 import freechips.rocketchip.diplomacy.{LazyModule, ValName}
 import freechips.rocketchip.devices.tilelink.BootROMParams
 import freechips.rocketchip.tile.XLen
@@ -51,6 +51,11 @@ class WithSimBlockDevice extends Config((site, here, up) => {
 })
 
 class ExampleHwachaConfig extends Config(
+  new WithBootROM ++
+  new hwacha.ISCA2016Config)
+
+class SingleBankHwachaConfig extends Config(
+  new WithNBanks(1) ++
   new WithBootROM ++
   new hwacha.ISCA2016Config)
 
