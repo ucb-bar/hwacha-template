@@ -57,7 +57,5 @@ $(sim_debug): $(model_mk_debug)
 exec_sim = $(sim)
 exec_sim_debug = $(sim_debug)
 
-clean: clean-scala
-	rm -rf $(build_dir) ./simulator-*
-
-.PHONY: clean default debug
+clean:
+	rm -rf generated-src ./simulator-*

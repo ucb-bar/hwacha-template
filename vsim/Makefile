@@ -52,6 +52,12 @@ $(sim_debug) : $(sim_vsrcs) $(sim_dotf)
 exec_sim=$(sim) +permissive -q +ntb_random_seed_automatic
 exec_sim_debug=$(sim_debug) +permissive -q +ntb_random_seed_automatic
 
+run-regression-tests: $(addprefix $(output_dir)/,$(addsuffix .out,$(regression-tests)))
+
+run-regression-tests-fast: $(addprefix $(output_dir)/,$(addsuffix .run,$(regression-tests)))
+
+run-regression-tests-debug: $(addprefix $(output_dir)/,$(addsuffix .vpd,$(regression-tests)))
+
 clean:
 	rm -rf $(build_dir) csrc simv-* ucli.key vc_hdrs.h
 
