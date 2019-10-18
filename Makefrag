@@ -55,7 +55,7 @@ $(HARNESS_SMEMS_FILE) $(HARNESS_SMEMS_FIR): $(HARNESS_SMEMS_CONF)
 output_dir=$(sim_dir)/output
 
 # Assembly/Benchmark Testing
-.PRECIOUS: $(output_dir)/%.vpd
+.PRECIOUS: $(output_dir)/%.vpd $(output_dir)/%.vcd
 
 perm_off = $(if $(findstring +permissive,$(exec_sim)),+permissive-off,)
 
@@ -64,15 +64,6 @@ $(output_dir)/%.run: $(output_dir)/% $(sim)
 
 $(output_dir)/%.out: $(output_dir)/% $(sim)
 	cd $(sim_dir) && $(exec_sim) +verbose +max-cycles=$(timeout_cycles) $(perm_off) $< $(disasm) $@ && [ $$PIPESTATUS -eq 0 ]
-
-$(output_dir)/%.vcd: $(output_dir)/% $(sim_debug)
-	cd $(sim_dir) && $(exec_sim_debug) +verbose -v$@ +max-cycles=$(timeout_cycles) $(perm_off) $< $(disasm) $(patsubst %.vcd,%.out,$@) && [ $$PIPESTATUS -eq 0 ]
-
-$(output_dir)/%.vpd: $(output_dir)/% $(sim_debug)
-	cd $(sim_dir) && $(exec_sim_debug) +verbose +vcdplusfile=$@ +max-cycles=$(timeout_cycles) $(perm_off) $< $(disasm) $(patsubst %.vpd,%.out,$@) && [ $$PIPESTATUS -eq 0 ]
-
-$(output_dir)/%.saif: $(output_dir)/% $(sim_debug)
-	cd $(sim_dir) && rm -f $(output_dir)/pipe-$*.vcd && vcd2saif -input $(output_dir)/pipe-$*.vcd -pipe "$(exec_sim_debug) +verbose +vcdfile=$(output_dir)/pipe-$*.vcd +max-cycles=$(bmark_timeout_cycles) $(perm_off) $<" -output $@ > $(patsubst %.saif,%.out,$@) 2>&1
 
 run-regression-tests: $(addprefix $(output_dir)/,$(addsuffix .out,$(regression-tests)))
 

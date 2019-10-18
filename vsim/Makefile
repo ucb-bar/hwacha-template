@@ -52,6 +52,12 @@ $(sim_debug) : $(sim_vsrcs) $(sim_dotf)
 exec_sim=$(sim) +permissive -q +ntb_random_seed_automatic
 exec_sim_debug=$(sim_debug) +permissive -q +ntb_random_seed_automatic
 
+$(output_dir)/%.vpd: $(output_dir)/% $(sim_debug)
+	cd $(sim_dir) && $(exec_sim_debug) +verbose +vcdplusfile=$@ +max-cycles=$(timeout_cycles) $(perm_off) $< $(disasm) $(patsubst %.vpd,%.out,$@) && [ $$PIPESTATUS -eq 0 ]
+
+$(output_dir)/%.saif: $(output_dir)/% $(sim_debug)
+	cd $(sim_dir) && rm -f $(output_dir)/pipe-$*.vcd && vcd2saif -input $(output_dir)/pipe-$*.vcd -pipe "$(exec_sim_debug) +verbose +vcdfile=$(output_dir)/pipe-$*.vcd +max-cycles=$(bmark_timeout_cycles) $(perm_off) $<" -output $@ > $(patsubst %.saif,%.out,$@) 2>&1
+
 clean:
 	rm -rf $(build_dir) csrc simv-* ucli.key vc_hdrs.h
 

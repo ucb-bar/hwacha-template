@@ -57,6 +57,14 @@ $(sim_debug): $(model_mk_debug)
 exec_sim = $(sim)
 exec_sim_debug = $(sim_debug)
 
+$(output_dir)/%.vcd: $(output_dir)/% $(sim_debug)
+	cd $(sim_dir) && $(exec_sim_debug) +verbose -v$@ +max-cycles=$(timeout_cycles) $(perm_off) $< $(disasm) $(patsubst %.vcd,%.out,$@) && [ $$PIPESTATUS -eq 0 ]
+
+$(output_dir)/%.vpd: $(output_dir)/% $(sim_debug)
+	if command -v vcd2vpd > /dev/null 2>&1 ; then rm -f $<.vcd && mkfifo $<.vcd && { vcd2vpd $<.vcd $@ & } fi && \
+	cd $(sim_dir) && $(exec_sim_debug) +verbose -v$<.vcd +max-cycles=$(timeout_cycles) $(perm_off) $< $(disasm) $(patsubst %.vpd,%.out,$@) && [ $$PIPESTATUS -eq 0 ]
+	touch $@
+
 clean:
 	rm -rf $(build_dir) ./simulator-*
 
