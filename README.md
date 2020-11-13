@@ -1,5 +1,8 @@
 # UCB-BAR Hwacha Project Template
 
+| **`hwacha-template` has been deprecated.  Users are encouraged to migrate to [Chipyard](https://github.com/ucb-bar/chipyard).** |
+|---|
+
 This is a template for building a rocket-chip with Hwacha.
 
 ## Submodules and Subdirectories
